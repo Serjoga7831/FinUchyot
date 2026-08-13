@@ -12,6 +12,7 @@
 - [`screens/`](screens/) — скриншоты официальных материалов и RuStore.
 - [`research/transcripts/`](research/transcripts/) — полные журналы исследовательских задач.
 - [`research/tbank-integration.md`](research/tbank-integration.md) — исследование вариантов подключения Т‑Банка: официальные API, Open Banking, экспорт, Android-уведомления и риски приватной сессии.
+- [`research/tbank-zenmoney-session-observations.md`](research/tbank-zenmoney-session-observations.md) — анализ современного подключения личного Т‑Банка в ZenMoney по публичной документации и наблюдаемой отдельной банковской сессии, без изучения исходного кода ZenMoney.
 - `video_*.txt` — результаты попыток получить транскрипты архивных видеообзоров; файлы сохранены для воспроизводимости исследования.
 
 ## Актуальность источников
