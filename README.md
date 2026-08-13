@@ -15,7 +15,9 @@
 - [`research/tbank-zenmoney-session-observations.md`](research/tbank-zenmoney-session-observations.md) — анализ современного подключения личного Т‑Банка в ZenMoney по публичной документации и наблюдаемой отдельной банковской сессии, без изучения исходного кода ZenMoney.
 - [`HANDOFF.md`](HANDOFF.md) — задание следующему агенту на безопасный dry-run браузерного коннектора Т‑Банка с отдельным Chromium-профилем, точками согласования, критериями успеха и откатом.
 - [`app/tbank-browser/`](app/tbank-browser/) — экспериментальный Android-прототип локального WebView-коннектора с ручной авторизацией на официальном сайте и штатным скачиванием экспорта.
+- [`app/tbank-geckoview/`](app/tbank-geckoview/) — отдельный ARM64-прототип на Mozilla GeckoView с официальными desktop User-Agent и desktop viewport; предназначен для проверки доступности ПК-интерфейса Т‑Банка без переноса WebView-сессии.
 - [`releases/FinUchyot-TBank-0.1-debug.apk`](releases/FinUchyot-TBank-0.1-debug.apk) — собранный debug-APK для испытания на телефоне; контрольная сумма находится рядом.
+- [`releases/FinUchyot-TBank-Gecko-0.1-debug.apk.sha256`](releases/FinUchyot-TBank-Gecko-0.1-debug.apk.sha256) — контрольная сумма отдельного GeckoView APK, опубликованного как GitHub Release asset.
 - `video_*.txt` — результаты попыток получить транскрипты архивных видеообзоров; файлы сохранены для воспроизводимости исследования.
 
 ## Актуальность источников

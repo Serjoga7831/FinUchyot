@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">FinUchyot — Т‑Банк Gecko</string>
+    <style name="Theme.FinUchyotGecko" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#FFE600</item>
+        <item name="colorOnPrimary">#111111</item>
+        <item name="android:statusBarColor">#111111</item>
+    </style>
+</resources>
