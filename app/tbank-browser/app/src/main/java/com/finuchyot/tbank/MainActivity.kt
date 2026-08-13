@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private lateinit var address: TextView
     private lateinit var progress: ProgressBar
+    private var desktopModeEnabled = false
 
     companion object {
         private val TRUSTED_SUFFIXES = setOf("tbank.ru", "tinkoff.ru")
@@ -128,6 +129,11 @@ class MainActivity : AppCompatActivity() {
                     address.text = if (isTrusted(uri))
                         "Официальный домен: ${uri.host}"
                     else "Переход заблокирован"
+                    if (desktopModeEnabled && isTrusted(uri)) {
+                        view?.evaluateJavascript(DesktopViewportScript.build(1280)) { raw ->
+                            address.text = "Официальный домен: ${uri.host} · viewport ${DesktopViewportScript.parseMetrics(raw)}"
+                        }
+                    }
                 }
             }
         }
@@ -150,6 +156,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyBrowserMode(config: BrowserConfig) {
+        desktopModeEnabled = config.useWideViewPort
         webView.settings.apply {
             userAgentString = config.userAgent
             useWideViewPort = config.useWideViewPort
