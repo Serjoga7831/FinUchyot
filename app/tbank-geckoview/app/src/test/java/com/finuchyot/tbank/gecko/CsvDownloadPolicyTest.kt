@@ -16,12 +16,22 @@ class CsvDownloadPolicyTest {
             "https://www.tbank.ru/file",
             mapOf("Content-Disposition" to "attachment; filename=operations.csv")
         ))
+        assertTrue(CsvDownloadPolicy.accepts(
+            "blob:https://www.tbank.ru/opaque-id",
+            mapOf("content-type" to "text/csv"),
+            trustedBlob = true
+        ))
     }
 
     @Test
     fun rejectsForeignOrNonCsvResponses() {
         assertFalse(CsvDownloadPolicy.accepts(
             "https://evil.example/export.csv", mapOf("content-type" to "text/csv")
+        ))
+        assertFalse(CsvDownloadPolicy.accepts(
+            "blob:https://www.tbank.ru/opaque-id",
+            mapOf("content-type" to "text/csv"),
+            trustedBlob = false
         ))
         assertFalse(CsvDownloadPolicy.accepts(
             "https://www.tbank.ru/export", mapOf("content-type" to "application/pdf")

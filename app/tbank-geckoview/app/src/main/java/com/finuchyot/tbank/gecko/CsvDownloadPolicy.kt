@@ -3,8 +3,10 @@ package com.finuchyot.tbank.gecko
 object CsvDownloadPolicy {
     const val MAX_BYTES: Long = 25L * 1024L * 1024L
 
-    fun accepts(uri: String, headers: Map<String, String>): Boolean {
-        if (!TrustedBankUrl.isAllowed(uri)) return false
+    fun accepts(uri: String, headers: Map<String, String>, trustedBlob: Boolean = false): Boolean {
+        val trustedSource = TrustedBankUrl.isAllowed(uri) ||
+            (trustedBlob && NavigationPolicy.isBlob(uri))
+        if (!trustedSource) return false
         val normalized = headers.entries.associate { it.key.lowercase() to it.value.lowercase() }
         val type = normalized["content-type"].orEmpty()
         val disposition = normalized["content-disposition"].orEmpty()

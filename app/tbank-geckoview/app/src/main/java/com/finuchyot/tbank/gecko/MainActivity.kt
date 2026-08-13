@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var progress: ProgressBar
     private var canGoBack = false
+    private var pendingBlobUri: String? = null
     private val downloadExecutor = Executors.newSingleThreadExecutor()
 
     companion object {
@@ -108,13 +109,17 @@ class MainActivity : AppCompatActivity() {
                     GeckoSession.NavigationDelegate.TARGET_WINDOW_NONE -> NavigationTarget.NONE
                     else -> NavigationTarget.NEW
                 }
-                return if (NavigationPolicy.isAllowed(request.uri, target)) {
+                return if (NavigationPolicy.isAllowed(request.uri, target, request.triggerUri)) {
                     if (target == NavigationTarget.CURRENT) {
+                        pendingBlobUri = null
                         status.text = "Официальный адрес: ${java.net.URI(request.uri).host}"
+                    } else if (NavigationPolicy.isBlob(request.uri)) {
+                        pendingBlobUri = request.uri
                     }
                     GeckoResult.allow()
                 } else {
-                    runOnUiThread { showBlocked(request.uri) }
+                    val detail = NavigationPolicy.safeDescription(request.uri, target)
+                    runOnUiThread { showBlocked(detail) }
                     GeckoResult.deny()
                 }
             }
@@ -145,7 +150,9 @@ class MainActivity : AppCompatActivity() {
         }
         session.contentDelegate = object : GeckoSession.ContentDelegate {
             override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
-                if (!CsvDownloadPolicy.accepts(response.uri, response.headers)) {
+                val trustedBlob = pendingBlobUri != null && response.uri == pendingBlobUri
+                pendingBlobUri = null
+                if (!CsvDownloadPolicy.accepts(response.uri, response.headers, trustedBlob)) {
                     response.body?.close()
                     runOnUiThread {
                         AlertDialog.Builder(this@MainActivity)
@@ -229,10 +236,10 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showBlocked(url: String) {
+    private fun showBlocked(detail: String) {
         AlertDialog.Builder(this)
             .setTitle("Переход заблокирован")
-            .setMessage("Основная страница разрешена только на HTTPS-доменах Т‑Банка.\n$url")
+            .setMessage("Разрешены страницы Т‑Банка и доверенные CSV-загрузки.\n$detail")
             .setPositiveButton("OK", null)
             .show()
     }
