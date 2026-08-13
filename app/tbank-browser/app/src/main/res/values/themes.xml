@@ -1,0 +1,10 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.FinUchyot" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#FFE600</item>
+        <item name="colorPrimaryVariant">#D6C000</item>
+        <item name="colorOnPrimary">#111111</item>
+        <item name="android:statusBarColor">#111111</item>
+        <item name="android:navigationBarColor">#111111</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+</resources>
