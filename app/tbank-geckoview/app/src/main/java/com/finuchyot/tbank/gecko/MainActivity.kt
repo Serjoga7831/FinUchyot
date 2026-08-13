@@ -103,11 +103,15 @@ class MainActivity : AppCompatActivity() {
                 session: GeckoSession,
                 request: GeckoSession.NavigationDelegate.LoadRequest
             ): GeckoResult<org.mozilla.geckoview.AllowOrDeny> {
-                if (request.target != GeckoSession.NavigationDelegate.TARGET_WINDOW_CURRENT) {
-                    return GeckoResult.deny()
+                val target = when (request.target) {
+                    GeckoSession.NavigationDelegate.TARGET_WINDOW_CURRENT -> NavigationTarget.CURRENT
+                    GeckoSession.NavigationDelegate.TARGET_WINDOW_NONE -> NavigationTarget.NONE
+                    else -> NavigationTarget.NEW
                 }
-                return if (TrustedBankUrl.isAllowed(request.uri)) {
-                    status.text = "Официальный адрес: ${java.net.URI(request.uri).host}"
+                return if (NavigationPolicy.isAllowed(request.uri, target)) {
+                    if (target == NavigationTarget.CURRENT) {
+                        status.text = "Официальный адрес: ${java.net.URI(request.uri).host}"
+                    }
                     GeckoResult.allow()
                 } else {
                     runOnUiThread { showBlocked(request.uri) }
