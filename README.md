@@ -11,6 +11,7 @@
 - [`research/subagents/technical-product-audit.md`](research/subagents/technical-product-audit.md) — технический и продуктовый аудит Android-приложения.
 - [`screens/`](screens/) — скриншоты официальных материалов и RuStore.
 - [`research/transcripts/`](research/transcripts/) — полные журналы исследовательских задач.
+- [`research/tbank-integration.md`](research/tbank-integration.md) — исследование вариантов подключения Т‑Банка: официальные API, Open Banking, экспорт, Android-уведомления и риски приватной сессии.
 - `video_*.txt` — результаты попыток получить транскрипты архивных видеообзоров; файлы сохранены для воспроизводимости исследования.
 
 ## Актуальность источников
