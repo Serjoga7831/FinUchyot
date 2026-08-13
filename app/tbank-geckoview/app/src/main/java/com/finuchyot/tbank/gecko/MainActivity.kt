@@ -15,6 +15,12 @@ import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
+import org.mozilla.geckoview.WebResponse
+import java.io.File
+import java.io.FileOutputStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
     private lateinit var geckoView: GeckoView
@@ -23,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var progress: ProgressBar
     private var canGoBack = false
+    private val downloadExecutor = Executors.newSingleThreadExecutor()
 
     companion object {
         private const val OPERATIONS_URL = "https://www.tbank.ru/mybank/operations/"
@@ -57,6 +64,10 @@ class MainActivity : AppCompatActivity() {
         controls.addView(Button(this).apply {
             text = "Обновить"
             setOnClickListener { session.reload() }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        controls.addView(Button(this).apply {
+            text = "Отчёты"
+            setOnClickListener { showReports() }
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
 
         geckoView = GeckoView(this)
@@ -128,8 +139,81 @@ class MainActivity : AppCompatActivity() {
                 if (!success) Toast.makeText(this@MainActivity, "Страница не загрузилась", Toast.LENGTH_SHORT).show()
             }
         }
+        session.contentDelegate = object : GeckoSession.ContentDelegate {
+            override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
+                if (!CsvDownloadPolicy.accepts(response.uri, response.headers)) {
+                    response.body?.close()
+                    runOnUiThread {
+                        AlertDialog.Builder(this@MainActivity)
+                            .setTitle("Загрузка отклонена")
+                            .setMessage("FinUchyot принимает только CSV с HTTPS-домена Т‑Банка. Выберите CSV, а не Excel или OFX.")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+                    return
+                }
+                saveCsv(response)
+            }
+        }
         session.open(runtime)
         geckoView.setSession(session)
+    }
+
+    private fun saveCsv(response: WebResponse) {
+        downloadExecutor.execute {
+            val reports = File(filesDir, "reports").apply { mkdirs() }
+            val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+            val target = File(reports, "tbank-operations-$stamp.csv")
+            try {
+                val body = response.body ?: throw IllegalStateException("Ответ CSV не содержит данных")
+                body.use { input ->
+                    FileOutputStream(target).use { output ->
+                        val buffer = ByteArray(16 * 1024)
+                        var total = 0L
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            total += count
+                            if (total > CsvDownloadPolicy.MAX_BYTES) {
+                                throw IllegalStateException("CSV превышает допустимый размер")
+                            }
+                            output.write(buffer, 0, count)
+                        }
+                        output.fd.sync()
+                    }
+                }
+                runOnUiThread {
+                    Toast.makeText(this, "CSV сохранён: ${target.name}", Toast.LENGTH_LONG).show()
+                    showReports()
+                }
+            } catch (error: Exception) {
+                target.delete()
+                runOnUiThread {
+                    AlertDialog.Builder(this)
+                        .setTitle("Не удалось сохранить CSV")
+                        .setMessage(error.message ?: "Неизвестная ошибка")
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            }
+        }
+    }
+
+    private fun showReports() {
+        val reports = File(filesDir, "reports")
+            .listFiles { file -> file.isFile && file.extension.lowercase() == "csv" }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+        val summary = if (reports.isEmpty()) {
+            "Сохранённых CSV пока нет. В экспорте Т‑Банка выберите CSV."
+        } else {
+            reports.joinToString("\n") { "${it.name} — ${it.length()} байт" }
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Локальные отчёты")
+            .setMessage(summary)
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     private fun confirmOpen() {
@@ -154,6 +238,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        downloadExecutor.shutdownNow()
         geckoView.releaseSession()
         session.close()
         runtime.shutdown()
