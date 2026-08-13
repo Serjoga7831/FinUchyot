@@ -147,7 +147,9 @@ SMS-парсер может быть резервным каналом, но р�
 
 В текущем коде авторизация запускает управляемый браузер, проходит банковский login flow и извлекает cookie сессии `psid`. Далее запросы используют приватные методы, в частности `/common/v1/operations`; структура операции содержит сумму, валюту, merchant, MCC, категорию, кэшбэк, координаты и признак электронного чека. Это подтверждает, что технически такой коннектор возможен.
 
-Архивный плагин ZenMoney для Тинькофф 2016 года работал сходным образом: принимал логин и пароль, привязывал устройство по SMS, создавал `sessionid`, вызывал `accounts_flat` и `operations`, а затем импортировал счета и операции.[11] Этот код десятилетней давности нельзя считать описанием современной синхронизации ZenMoney.
+В истории ZenMoney обнаружены две генерации личного коннектора Тинькофф. Самый ранний вариант 2016 года принимал логин и пароль, привязывал устройство по SMS, создавал `sessionid`, вызывал `accounts_flat` и `operations`. Более поздняя реализация в `src/plugins/tinkoff` поддерживала локальный device ID, интерактивное подтверждение, PIN/session ID, счета разных типов, hold-операции, MCC, merchant и дедупликацию переводов. Однако 2 марта 2020 года личный коннектор был удалён коммитом `1efdd11c` вместе с deprecated и неработающими плагинами.[11] Поэтому старый код полезен только как архитектурный материал, но не как рабочая основа современной синхронизации.
+
+Отдельно в текущем ZenPlugins существует поддерживаемый коннектор **Tinkoff Business / T‑Business**. Он использует нормальный OAuth authorization-code flow через T‑ID, `state`, redirect URI, access/refresh tokens, проверку scopes и официальный API бизнес-счетов и выписок. В репозитории есть изменения от 4 августа 2026 года, но production client ID/secret не опубликованы. Этот коннектор подтверждает жизнеспособность официальной OAuth-архитектуры для бизнеса, однако не предоставляет доступ к розничным картам физлица.[12]
 
 ### Почему не стоит брать это как основной способ
 
@@ -229,4 +231,5 @@ Open Banking          → будущая официальная автомати
 8. [Т‑Банк — оповещения об операциях по карте](https://www.tbank.ru/bank/help/debit-cards/tinkoff-black/protect-card/notifications/)
 9. [Android Developers — NotificationListenerService](https://developer.android.com/reference/kotlin/android/service/notification/NotificationListenerService)
 10. [jfk9w-go/tbank-api — неофициальный клиент web API Т‑Банка](https://github.com/jfk9w-go/tbank-api)
-11. [ZenMoney ZenPlugins — архивный плагин Tinkoff, commit от 14.07.2016](https://github.com/zenmoney/ZenPlugins/tree/a99625875c5782ac142d46fe027b08889a6f9a6d/plugins/tinkoff)
+11. [ZenMoney ZenPlugins — удалённый личный коннектор Tinkoff на последнем снимке](https://github.com/zenmoney/ZenPlugins/tree/1655890a1e9e5bfb1669a991a3f8215c5dc2743d/src/plugins/tinkoff)
+12. [ZenMoney ZenPlugins — актуальный коннектор Tinkoff Business](https://github.com/zenmoney/ZenPlugins/tree/master/src/plugins/tinkoff-business)
