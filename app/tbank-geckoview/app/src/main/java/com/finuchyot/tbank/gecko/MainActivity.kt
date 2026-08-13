@@ -110,11 +110,11 @@ class MainActivity : AppCompatActivity() {
                     else -> NavigationTarget.NEW
                 }
                 return if (NavigationPolicy.isAllowed(request.uri, target, request.triggerUri)) {
-                    if (target == NavigationTarget.CURRENT) {
+                    if (NavigationPolicy.isBlob(request.uri)) {
+                        pendingBlobUri = request.uri
+                    } else if (target == NavigationTarget.CURRENT) {
                         pendingBlobUri = null
                         status.text = "Официальный адрес: ${java.net.URI(request.uri).host}"
-                    } else if (NavigationPolicy.isBlob(request.uri)) {
-                        pendingBlobUri = request.uri
                     }
                     GeckoResult.allow()
                 } else {

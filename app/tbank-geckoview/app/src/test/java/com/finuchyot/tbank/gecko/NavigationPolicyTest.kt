@@ -15,6 +15,11 @@ class NavigationPolicyTest {
             NavigationTarget.NONE,
             "https://www.tbank.ru/mybank/operations/"
         ))
+        assertTrue(NavigationPolicy.isAllowed(
+            "blob:https://www.tbank.ru/opaque-id",
+            NavigationTarget.CURRENT,
+            "https://www.tbank.ru/mybank/operations/"
+        ))
     }
 
     @Test
@@ -24,7 +29,7 @@ class NavigationPolicyTest {
         assertFalse(NavigationPolicy.isAllowed(
             "blob:https://www.tbank.ru/opaque-id",
             NavigationTarget.CURRENT,
-            "https://www.tbank.ru/mybank/operations/"
+            null
         ))
         assertFalse(NavigationPolicy.isAllowed(
             "blob:https://evil.example/opaque-id",

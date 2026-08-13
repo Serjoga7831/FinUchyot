@@ -8,7 +8,8 @@ object NavigationPolicy {
     fun isAllowed(uri: String, target: NavigationTarget, triggerUri: String?): Boolean {
         if (target == NavigationTarget.NEW) return false
         if (TrustedBankUrl.isAllowed(uri)) return true
-        if (target != NavigationTarget.NONE || !uri.startsWith("blob:")) return false
+        if (!uri.startsWith("blob:")) return false
+        if (target != NavigationTarget.NONE && target != NavigationTarget.CURRENT) return false
         if (triggerUri == null || !TrustedBankUrl.isAllowed(triggerUri)) return false
         return trustedBlobOrigin(uri)
     }
