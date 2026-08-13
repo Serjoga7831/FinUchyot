@@ -30,7 +30,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
 
     companion object {
-        private const val BANK_HOME = "https://www.tbank.ru/login/"
         private val TRUSTED_SUFFIXES = setOf("tbank.ru", "tinkoff.ru")
     }
 
@@ -58,14 +57,19 @@ class MainActivity : AppCompatActivity() {
         }
         val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val open = Button(this).apply {
-            text = "Открыть Т‑Банк"
-            setOnClickListener { confirmAndOpenBank() }
+            text = "Мобильный вид"
+            setOnClickListener { confirmAndOpenBank(BrowserMode.mobile(webView.settings.userAgentString)) }
+        }
+        val desktop = Button(this).apply {
+            text = "Операции (ПК)"
+            setOnClickListener { confirmAndOpenBank(BrowserMode.desktop()) }
         }
         val reports = Button(this).apply {
             text = "Отчёты"
             setOnClickListener { startActivity(Intent(this@MainActivity, FilesActivity::class.java)) }
         }
         controls.addView(open, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        controls.addView(desktop, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(reports, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
 
         webView = WebView(this)
@@ -132,13 +136,27 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun confirmAndOpenBank() {
+    private fun confirmAndOpenBank(config: BrowserConfig) {
+        val modeName = if (config.useWideViewPort) "десктопный раздел всех операций" else "мобильный сайт"
         AlertDialog.Builder(this)
-            .setTitle("Открыть официальный сайт Т‑Банка?")
+            .setTitle("Открыть $modeName?")
             .setMessage("Проверьте домен в жёлтой панели. Номер телефона, одноразовый код и код быстрого входа вводятся только на странице банка. Приложение их не записывает.")
             .setNegativeButton("Отмена", null)
-            .setPositiveButton("Открыть") { _, _ -> webView.loadUrl(BANK_HOME) }
+            .setPositiveButton("Открыть") { _, _ ->
+                applyBrowserMode(config)
+                webView.loadUrl(config.startUrl)
+            }
             .show()
+    }
+
+    private fun applyBrowserMode(config: BrowserConfig) {
+        webView.settings.apply {
+            userAgentString = config.userAgent
+            useWideViewPort = config.useWideViewPort
+            loadWithOverviewMode = config.loadWithOverviewMode
+            textZoom = if (config.useWideViewPort) 80 else 100
+        }
+        webView.clearCache(false)
     }
 
     private fun handleDownload(url: String, userAgent: String?, disposition: String?, mime: String?) {
