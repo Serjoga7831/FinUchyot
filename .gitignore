@@ -1,0 +1,17 @@
+# OS/editor artifacts
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Generated archives
+*.zip
+*.tar
+*.tar.gz
