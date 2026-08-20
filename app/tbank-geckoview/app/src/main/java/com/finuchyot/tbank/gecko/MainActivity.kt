@@ -215,16 +215,51 @@ class MainActivity : AppCompatActivity() {
             .listFiles { file -> file.isFile && file.extension.lowercase() == "csv" }
             ?.sortedByDescending { it.lastModified() }
             .orEmpty()
-        val summary = if (reports.isEmpty()) {
-            "Сохранённых CSV пока нет. В экспорте Т‑Банка выберите CSV."
-        } else {
-            reports.joinToString("\n") { "${it.name} — ${it.length()} байт" }
+        if (reports.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("Локальные отчёты")
+                .setMessage("Сохранённых CSV пока нет. В экспорте Т‑Банка выберите CSV.")
+                .setPositiveButton("OK", null)
+                .show()
+            return
         }
+        val labels = reports.map { "${it.name} — ${it.length()} байт" }.toTypedArray()
         AlertDialog.Builder(this)
-            .setTitle("Локальные отчёты")
-            .setMessage(summary)
-            .setPositiveButton("OK", null)
+            .setTitle("Выберите CSV для анализа")
+            .setItems(labels) { _, index -> analyzeReport(reports[index]) }
+            .setNegativeButton("Закрыть", null)
             .show()
+    }
+
+    private fun analyzeReport(file: File) {
+        Toast.makeText(this, "Анализ CSV…", Toast.LENGTH_SHORT).show()
+        downloadExecutor.execute {
+            try {
+                require(file.isFile && file.parentFile == File(filesDir, "reports")) {
+                    "Недопустимый путь отчёта"
+                }
+                require(file.length() <= CsvDownloadPolicy.MAX_BYTES) {
+                    "CSV превышает допустимый размер"
+                }
+                val result = CsvDiagnosticAnalyzer.analyze(file.readBytes())
+                val summary = CsvDiagnosticFormatter.format(file.name, file.length(), result)
+                runOnUiThread {
+                    AlertDialog.Builder(this)
+                        .setTitle("Диагностика CSV")
+                        .setMessage(summary)
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    AlertDialog.Builder(this)
+                        .setTitle("CSV не распознан")
+                        .setMessage(error.message ?: "Не удалось определить структуру CSV")
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            }
+        }
     }
 
     private fun confirmOpen() {
