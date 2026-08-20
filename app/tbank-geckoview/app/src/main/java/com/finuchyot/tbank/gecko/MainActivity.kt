@@ -15,7 +15,9 @@ import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoView
+import org.mozilla.geckoview.WebExtension
 import org.mozilla.geckoview.WebResponse
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDateTime
@@ -28,12 +30,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var runtime: GeckoRuntime
     private lateinit var status: TextView
     private lateinit var progress: ProgressBar
+    private lateinit var automationButton: Button
     private var canGoBack = false
     private var pendingBlobUri: String? = null
+    private var automationPort: WebExtension.Port? = null
     private val downloadExecutor = Executors.newSingleThreadExecutor()
 
     companion object {
         private const val OPERATIONS_URL = "https://www.tbank.ru/mybank/operations/"
+        private const val AUTOMATION_EXTENSION_LOCATION =
+            "resource://android/assets/finuchyot_automation/"
+        private const val AUTOMATION_EXTENSION_ID =
+            "finuchyot-automation@finuchyot.local"
+        private const val AUTOMATION_NATIVE_APP = "finuchyot"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,11 +80,21 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { showReports() }
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
 
+        automationButton = Button(this).apply {
+            text = "Скачать CSV автоматически"
+            isEnabled = false
+            setOnClickListener { startAutomaticCsvDownload() }
+        }
+
         geckoView = GeckoView(this)
         root.addView(notice)
         root.addView(status)
         root.addView(progress)
         root.addView(controls)
+        root.addView(automationButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
         root.addView(geckoView, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
         ))
@@ -168,6 +187,96 @@ class MainActivity : AppCompatActivity() {
         }
         session.open(runtime)
         geckoView.setSession(session)
+        installAutomationExtension()
+    }
+
+    private fun installAutomationExtension() {
+        val messageDelegate = object : WebExtension.MessageDelegate {
+            override fun onConnect(port: WebExtension.Port) {
+                val sender = port.sender
+                val trusted = sender.webExtension.id == AUTOMATION_EXTENSION_ID &&
+                    AutomationMessagePolicy.isTrustedSender(
+                        sender.url,
+                        sender.isTopLevel(),
+                        sender.session === session
+                    )
+                if (!trusted) {
+                    port.disconnect()
+                    return
+                }
+                automationPort?.disconnect()
+                automationPort = port
+                port.setDelegate(object : WebExtension.PortDelegate {
+                    override fun onPortMessage(message: Any, sourcePort: WebExtension.Port) {
+                        if (sourcePort !== automationPort || message !is JSONObject) return
+                        if (message.optString("type") != "automationResult") return
+                        val code = message.optString("code")
+                        if (!AutomationMessagePolicy.isKnownCode(code)) return
+                        runOnUiThread { handleAutomationCode(code) }
+                    }
+
+                    override fun onDisconnect(sourcePort: WebExtension.Port) {
+                        if (sourcePort === automationPort) {
+                            automationPort = null
+                            runOnUiThread { automationButton.isEnabled = false }
+                        }
+                    }
+                })
+            }
+        }
+        runtime.webExtensionController
+            .ensureBuiltIn(AUTOMATION_EXTENSION_LOCATION, AUTOMATION_EXTENSION_ID)
+            .accept(
+                { extension ->
+                    if (extension == null || extension.id != AUTOMATION_EXTENSION_ID) {
+                        runOnUiThread {
+                            automationButton.isEnabled = false
+                            Toast.makeText(
+                                this,
+                                "Не удалось проверить расширение автоматизации",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    } else {
+                        runOnUiThread {
+                            session.webExtensionController.setMessageDelegate(
+                                extension,
+                                messageDelegate,
+                                AUTOMATION_NATIVE_APP
+                            )
+                        }
+                    }
+                },
+                {
+                    runOnUiThread {
+                        automationButton.isEnabled = false
+                        Toast.makeText(
+                            this,
+                            "Не удалось подготовить автоматизацию CSV",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            )
+    }
+
+    private fun handleAutomationCode(code: String) {
+        if (code == "ready") {
+            automationButton.isEnabled = true
+            return
+        }
+        Toast.makeText(this, AutomationMessagePolicy.userMessage(code), Toast.LENGTH_LONG).show()
+    }
+
+    private fun startAutomaticCsvDownload() {
+        val port = automationPort
+        if (port == null) {
+            automationButton.isEnabled = false
+            Toast.makeText(this, "Откройте страницу «Операции» и дождитесь загрузки", Toast.LENGTH_LONG).show()
+            return
+        }
+        port.postMessage(JSONObject().put("type", "downloadCsv"))
+        Toast.makeText(this, "Запускаю официальный экспорт CSV…", Toast.LENGTH_SHORT).show()
     }
 
     private fun saveCsv(response: WebResponse) {

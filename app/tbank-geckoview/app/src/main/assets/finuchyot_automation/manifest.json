@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "FinUchyot T-Bank CSV Automation",
+  "version": "0.1.0",
+  "description": "User-triggered official CSV export on the T-Bank operations page.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "finuchyot-automation@finuchyot.local"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://tbank.ru/mybank/operations*",
+        "https://www.tbank.ru/mybank/operations*"
+      ],
+      "js": ["automation-core.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "permissions": [
+    "nativeMessaging",
+    "nativeMessagingFromContent",
+    "geckoViewAddons"
+  ]
+}
